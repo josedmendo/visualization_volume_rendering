@@ -64,8 +64,8 @@ public class Volume {
         return dimZ;
     }
 
-    public int getDiagonal() {
-        return (int)Math.sqrt(dimX * dimX + dimY * dimY + dimZ * dimZ);
+    public double getDiagonal() {
+        return Math.sqrt(dimX * dimX + dimY * dimY + dimZ * dimZ);
     }
 
     public short getMinimum() {

@@ -93,8 +93,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
     short getVoxel(double[] coord) {
 
-        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
-                || coord[2] < 0 || coord[2] > volume.getDimZ()) {
+        if (coord[0] <= 0 || coord[0] >= volume.getDimX() || coord[1] <= 0 || coord[1] >= volume.getDimY()
+                || coord[2] <= 0 || coord[2] >= volume.getDimZ()) {
             return 0;
         }
 
@@ -123,9 +123,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double[] viewVec = new double[3];
         double[] uVec = new double[3];
         double[] vVec = new double[3];
-        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
-        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
-        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
+        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);//(1,0,0)
+        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);//(0,1,0)
+        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);//(0,0,1)
 
         // image is square
         int imageCenter = image.getWidth() / 2;
@@ -141,6 +141,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
+
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                         + volumeCenter[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -187,8 +188,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         // image is square
         int imageCenter = image.getWidth() / 2;
-        int depthCenter = volume.getDimZ() / 2;
-        int diagonalCenter = volume.getDiagonal()/2;
+        double diagonal = volume.getDiagonal();
 
         double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
@@ -199,14 +199,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         TFColor voxelColor = new TFColor();
 
         // vector vals to store the values through axis Z (k index)
-        int[] vals = new int[volume.getDimZ()];
-        int max_val=0;
+        short val;
 
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
-                for(int k = -depthCenter; k < +depthCenter; k++) {
-                // change all the depthCenter for depthDiagonal   ?????
-                //for(double k = 0; k < volume.getDiagonal(); k++) {  ????
+                short max_val=0;
+                for(double k = -diagonal/2; k < diagonal/2; k++) {
+
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0]*k + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -214,10 +213,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2]*k + volumeCenter[2];
                     // getVoxel
-                    vals[k + depthCenter] = getVoxel(pixelCoord);
+                    val = getVoxel(pixelCoord);
+                    if(val > max_val){
+                        max_val = val;
+                    }
                 }
-                // for the ray in k, max_val of vector vals
-                max_val = VectorMath.max(vals);
 
                 // Map the intensity to a grey value by linear scaling
                 voxelColor.r = max_val / max;
@@ -226,7 +226,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 voxelColor.a = max_val > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
                 // Alternatively, apply the transfer function to obtain a color
                 // voxelColor = tFunc.getColor(max_val);
-
 
                 // BufferedImage expects a pixel color packed as ARGB in an int
                 int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
@@ -239,6 +238,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             }
         }
 
+
     }
 
 
@@ -250,6 +250,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         // new variables
         TFColor compositeColor;
+        TFColor voxelColor;
 
         // vector uVec and vVec define a plane through the origin,
         // perpendicular to the view vector viewVec
@@ -262,33 +263,24 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         // image is square
         int imageCenter = image.getWidth() / 2;
-        int diagonalCenter = volume.getDiagonal()/2;
-        int depthCenter = volume.getDimZ()/2;
+        double diagonal = volume.getDiagonal();
 
         double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
-
-        // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
-        TFColor voxelColor = new TFColor();
-        TransferFunction tFunc = new TransferFunction(volume.getMinimum(), volume.getMaximum());
-
-
+        
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 // initialize color
                 compositeColor = new TFColor(0,0,0,1);
-                for(int k = -depthCenter; k < +depthCenter; k++) {
-                    // change all the depthCenter for depthDiagonal   ?????
-                    //for(double k = 0; k < volume.getDiagonal(); k++) {  ????
-                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                            + viewVec[0] * k + volumeCenter[0];
-                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                            + viewVec[1] * k + volumeCenter[1];
-                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                            + viewVec[2] * k + volumeCenter[2];
+                for(double k = -diagonal/2; k < diagonal/2; k++) {
 
+                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                            + viewVec[0]*k + volumeCenter[0];
+                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                            + viewVec[1]*k + volumeCenter[1];
+                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                            + viewVec[2]*k + volumeCenter[2];
                     // INTERPOLATE HERE!!!!!!
                     int val = getVoxel(pixelCoord);
 
