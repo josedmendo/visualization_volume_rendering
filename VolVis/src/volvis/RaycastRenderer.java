@@ -105,6 +105,60 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return volume.getVoxel(x, y, z);
     }
 
+    short interpolateVoxel(double[] coord) {
+
+        if (coord[0] <= 0 || coord[0] >= volume.getDimX() || coord[1] <= 0 || coord[1] >= volume.getDimY()
+                || coord[2] <= 0 || coord[2] >= volume.getDimZ()) {
+            return 0;
+        }
+
+        //get adjacent voxels
+
+        int xLow = (int) Math.floor(coord[0]);
+        int yLow = (int) Math.floor(coord[1]);
+        int zLow = (int) Math.floor(coord[2]);
+        int xHigh = (int) Math.ceil(coord[0]);
+        int yHigh = (int) Math.ceil(coord[1]);
+        int zHigh = (int) Math.ceil(coord[2]);
+
+        if (xLow <= 0 || xHigh >= volume.getDimX() || yLow <= 0 || yHigh >= volume.getDimY()
+                || zLow <= 0 || zHigh >= volume.getDimZ()) {
+            return 0;
+        }
+
+        double alpha = (coord[0]-xLow)/(xHigh-xLow);
+        double beta = (coord[1]-yLow)/(yHigh-yLow);
+        double gamma =(coord[2]-zLow)/(zHigh-zLow);
+
+        //xLow,yLow,zLow
+        int s000 = volume.getVoxel(xLow,yLow,zLow);
+        //xLow,yLow,zHigh
+        int s001 =  volume.getVoxel(xLow,yLow,zHigh);
+        //xLow,yHigh,zLow
+        int s010 =  volume.getVoxel(xLow,yHigh,zLow);
+        //xLow,yHigh,zHigh
+        int s011 =  volume.getVoxel(xLow,yHigh,zHigh);
+        //xHigh,yLow,zLow
+        int s100 =  volume.getVoxel(xHigh,yLow,zLow);
+        //xHigh,yLow,zHigh
+        int s101 =  volume.getVoxel(xHigh,yLow,zHigh);
+        //xHigh,yHigh,zLow
+        int s110 =  volume.getVoxel(xHigh,yHigh,zLow);
+        //xHigh,yHigh,zHigh
+        int s111 =  volume.getVoxel(xHigh,yHigh,zHigh);
+
+        short inter = (short)((1 - alpha)*(1 - beta)*(1 - gamma)*s010 +
+                alpha*(1 - beta)*(1 - gamma)*s110+
+                (1-alpha)*beta*(1-gamma)*s000+
+                alpha*beta*(1-gamma)*s100+
+                (1-alpha)*(1-beta)*gamma*s011+
+                alpha*(1-beta)*gamma*s111+
+                (1-alpha)*beta*gamma*s001+
+                alpha*beta*gamma*s101);
+
+        return inter;
+    }
+
     void clear() {
         // clear image
         for (int j = 0; j < image.getHeight(); j++) {
@@ -150,6 +204,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[2];
 
                 // INTERPOLATE HERE!!!!!!
+                //int val = interpolateVoxel(pixelCoord);
                 int val = getVoxel(pixelCoord);
                 
                 // Map the intensity to a grey value by linear scaling
@@ -213,6 +268,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2]*k + volumeCenter[2];
                     // getVoxel
+                    //val = interpolateVoxel(pixelCoord);
                     val = getVoxel(pixelCoord);
                     if(val > max_val){
                         max_val = val;
@@ -268,7 +324,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
-        
+
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 // initialize color
@@ -282,6 +338,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2]*k + volumeCenter[2];
                     // INTERPOLATE HERE!!!!!!
+                    //int val = interpolateVoxel(pixelCoord);
                     int val = getVoxel(pixelCoord);
 
                     // get color with TF
