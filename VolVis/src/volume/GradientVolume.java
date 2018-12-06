@@ -11,30 +11,30 @@ package volume;
 public class GradientVolume {
 
     public GradientVolume(Volume vol) {
-        volume = vol;
+        gradientVolume = vol;
         dimX = vol.getDimX();
         dimY = vol.getDimY();
         dimZ = vol.getDimZ();
-        data = new VoxelGradient[dimX * dimY * dimZ];
+        GradientData = new VoxelGradient[dimX * dimY * dimZ];
         compute();
         maxmag = -1.0;
     }
 
     public VoxelGradient getGradient(int x, int y, int z) {
-        return data[x + dimX * (y + dimY * z)];
+        return GradientData[x + dimX * (y + dimY * z)];
     }
 
-    
+
     public void setGradient(int x, int y, int z, VoxelGradient value) {
-        data[x + dimX * (y + dimY * z)] = value;
+        GradientData[x + dimX * (y + dimY * z)] = value;
     }
 
     public void setVoxel(int i, VoxelGradient value) {
-        data[i] = value;
+        GradientData[i] = value;
     }
 
     public VoxelGradient getVoxel(int i) {
-        return data[i];
+        return GradientData[i];
     }
 
     public int getDimX() {
@@ -49,31 +49,52 @@ public class GradientVolume {
         return dimZ;
     }
 
+
+
     private void compute() {
 
         // this just initializes all gradients to the vector (0,0,0)
-        for (int i=0; i<data.length; i++) {
-            data[i] = zero;
+        for (int i=0; i<GradientData.length; i++) {
+            GradientData[i] = zero;
         }
-                
+
+        float gradX,gradY,gradZ;
+        for(int i=1; i< dimX-1;i++){
+            for(int j=1; j< dimY-1;j++){
+                for(int k=1; k< dimZ-1;k++){
+
+                    gradX = (gradientVolume.getVoxel(i+1,j,k)-gradientVolume.getVoxel(i-1,j,k))/2;
+                    gradY = (gradientVolume.getVoxel(i,j+1,k)-gradientVolume.getVoxel(i,j-1,k))/2;
+                    gradZ = (gradientVolume.getVoxel(i,j,k+1)-gradientVolume.getVoxel(i,j,k-1))/2;
+
+                    VoxelGradient val = new VoxelGradient(gradX,gradY,gradZ);
+
+                    this.setGradient(i,j,k,val);
+                }
+
+
+            }
+        }
+
     }
-    
+
+
     public double getMaxGradientMagnitude() {
         if (maxmag >= 0) {
             return maxmag;
         } else {
-            double magnitude = data[0].mag;
-            for (int i=0; i<data.length; i++) {
-                magnitude = data[i].mag > magnitude ? data[i].mag : magnitude;
-            }   
+            double magnitude = GradientData[0].mag;
+            for (int i=0; i<GradientData.length; i++) {
+                magnitude = GradientData[i].mag > magnitude ? GradientData[i].mag : magnitude;
+            }
             maxmag = magnitude;
             return magnitude;
         }
     }
-    
+
     private int dimX, dimY, dimZ;
     private VoxelGradient zero = new VoxelGradient();
-    VoxelGradient[] data;
-    Volume volume;
+    VoxelGradient[] GradientData;
+    Volume gradientVolume;
     double maxmag;
 }

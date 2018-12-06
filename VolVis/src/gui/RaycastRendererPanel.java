@@ -145,12 +145,10 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
 
     private void compositingButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_compositingButtonActionPerformed
         renderer.setRenderMethod(RaycastRenderer.RENDER_METHOD.COMPOSITING);
-        //JOptionPane.showMessageDialog(this, "Not implemented.");
     }//GEN-LAST:event_compositingButtonActionPerformed
 
     private void tf2dButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf2dButtonActionPerformed
-        //renderer.setRenderMethod(RaycastRenderer.RENDER_METHOD.TF2D);
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        renderer.setRenderMethod(RaycastRenderer.RENDER_METHOD.TF2D);
     }//GEN-LAST:event_tf2dButtonActionPerformed
 
     private void shadingCheckboxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_shadingCheckboxActionPerformed
