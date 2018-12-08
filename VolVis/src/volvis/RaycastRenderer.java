@@ -18,6 +18,7 @@ import util.TFChangeListener;
 import util.VectorMath;
 import volume.GradientVolume;
 import volume.Volume;
+import volume.VoxelGradient;
 
 /**
  *
@@ -31,9 +32,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     TransferFunction tFunc;
     TransferFunctionEditor tfEditor;
     TransferFunction2DEditor tfEditor2D;
+    private boolean phongFlag=false;
+
 
     public enum RENDER_METHOD {
-        SLICER, MIP, COMPOSITING, TF2D
+        SLICER, MIP, COMPOSITING, TF2D, PHONG
     }
     private RENDER_METHOD method;
 
@@ -92,7 +95,41 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return tfEditor;
     }
      
+    void toggle(){
+        phongFlag = !phongFlag;
+    }
 
+    TFColor phong(TFColor voxelColor, double[] viewVec,double[] pixelCoord){
+
+        if (pixelCoord[0] < 0 || pixelCoord[0] >= volume.getDimX() || pixelCoord[1] < 0 || pixelCoord[1] >= volume.getDimY()
+                || pixelCoord[2] < 0 || pixelCoord[2] >= volume.getDimZ()) {
+            return voxelColor;
+        }
+
+       double kAmb = 0.1;
+       double kDiff = 0.7;
+       double kSpec = 0.2;
+       int alpha = 10;
+       double []L = {-viewVec[0],-viewVec[1],-viewVec[2]};
+        VoxelGradient voxelGradient = gradients.getGradient((int) Math.floor(pixelCoord[0]),
+               (int) Math.floor(pixelCoord[1]),(int) Math.floor(pixelCoord[2]));
+        double []N = {voxelGradient.x/voxelGradient.mag,
+                voxelGradient.y/voxelGradient.mag,voxelGradient.z/voxelGradient.mag};
+        //double []R = VectorMath.substractProduct(VectorMath.scalarProduct(VectorMath.dotproduct(VectorMath.scalarProduct(2,N),L),N),L);
+        //i = kamb + kdiff(L*N)+kspec(V*R)
+        double lDotN = VectorMath.dotproduct(L,N);
+        //H = L
+        double nDotH = VectorMath.dotproduct(N,L);
+
+        if(lDotN >0 && nDotH >0){
+            voxelColor.r = kAmb + voxelColor.r*kDiff*lDotN  + kSpec*Math.pow(nDotH,alpha);
+            voxelColor.g = kAmb + voxelColor.g*kDiff*lDotN  + kSpec*Math.pow(nDotH,alpha);
+            voxelColor.b = kAmb + voxelColor.b*kDiff*lDotN  + kSpec*Math.pow(nDotH,alpha);
+        }
+
+        return voxelColor;
+
+    }
     short getVoxel(double[] coord) {
 
         if (coord[0] < 0 || coord[0] >= volume.getDimX() || coord[1] < 0 || coord[1] >= volume.getDimY()
@@ -441,7 +478,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                     // get color with TF
                     voxelColor = tFunc.getColor(val);
-                    //voxelColor = phong(voxelColor, pixelCoord);
 
                     compositeColor.r = voxelColor.r * voxelColor.a + (1.0 - voxelColor.a) * compositeColor.r;
                     compositeColor.g = voxelColor.g * voxelColor.a + (1.0 - voxelColor.a) * compositeColor.g;
@@ -509,12 +545,19 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2]*k + volumeCenter[2];
                     // INTERPOLATE HERE!!!!!!
+
                     int val = interpolateVoxel(pixelCoord);
+
                     //int val = getVoxel(pixelCoord);
 
                     // get color with TF
                     voxelColor =  new TFColor(color.r,color.g,color.b,color.a);
                     //voxelColor = phong(voxelColor, pixelCoord);
+                    if(phongFlag){//phone_flag initializer is false
+                        voxelColor = phong(voxelColor,viewVec,pixelCoord);
+                    }
+
+                   //voxelColor = phong(voxelColor,viewVec,pixelCoord);
 
                     float mag = interpolateGradient(pixelCoord);
                     //float mag = getGradient(pixelCoord);
@@ -632,6 +675,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 compositing(viewMatrix);
                 break;
             case TF2D:
+                twoDTransferFunction(viewMatrix);
+                break;
+            case PHONG:
+                toggle();
+                //System.out.println("Cambio a phong o no: " + phongFlag);
                 twoDTransferFunction(viewMatrix);
                 break;
         }

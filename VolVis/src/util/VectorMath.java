@@ -17,6 +17,19 @@ public class VectorMath {
         v[2] = c2;
     }
 
+    // compute scalar product of vectors v and w
+    public static double[] scalarProduct(double k, double[] v) {
+        double []kv = {k*v[0],k*v[1],k*v[2]};
+        return kv;
+    }
+
+    // compute scalar product of vectors v and w
+    public static double[] substractProduct(double k[], double[] v) {
+        double []kv = {k[0]-v[0],k[1]-v[1],k[2]-v[2]};
+        return kv;
+    }
+
+
     // compute dotproduct of vectors v and w
     public static double dotproduct(double[] v, double[] w) {
         double r = 0;
