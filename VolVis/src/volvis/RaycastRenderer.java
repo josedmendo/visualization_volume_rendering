@@ -33,6 +33,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     TransferFunctionEditor tfEditor;
     TransferFunction2DEditor tfEditor2D;
     private boolean phongFlag=false;
+    private boolean tf2dFlag = false;
+    int stepInteractive = 10;
 
 
     public enum RENDER_METHOD {
@@ -327,7 +329,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double max = volume.getMaximum();
         TFColor voxelColor = new TFColor();
 
-        
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
 
@@ -391,10 +392,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         // vector vals to store the values through axis Z (k index)
         short val;
 
+        // step interactive
+        int step = (interactiveMode) ? stepInteractive : 1;
+
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 short max_val=0;
-                for(double k = -diagonal/2; k < diagonal/2; k++) {
+                for(double k = -diagonal/2; k < diagonal/2; k+=step) {
 
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0]*k + volumeCenter[0];
@@ -460,11 +464,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
 
+        // step interactive
+        int step = (interactiveMode) ? stepInteractive : 1;
+
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 // initialize color
                 compositeColor = new TFColor(0,0,0,1);
-                for(double k = -diagonal/2; k < diagonal/2; k++) {
+                for(double k = -diagonal/2; k < diagonal/2; k+=step) {
 
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0]*k + volumeCenter[0];
@@ -532,11 +539,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
 
+        // step interactive
+        int step = (interactiveMode) ? stepInteractive : 1;
+
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
                 // initialize color
                 compositeColor = new TFColor(0,0,0,1);
-                for(double k = -diagonal/2; k < diagonal/2; k++) {
+                for(double k = -diagonal/2; k < diagonal/2; k+=step) {
 
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0]*k + volumeCenter[0];
@@ -666,21 +676,27 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         switch(method) {
             case SLICER:
+                tf2dFlag = false;
                 slicer(viewMatrix);
                 break;
             case MIP:
+                tf2dFlag = false;
                 mip(viewMatrix);
                 break;
             case COMPOSITING:
+                tf2dFlag = false;
                 compositing(viewMatrix);
                 break;
             case TF2D:
+                tf2dFlag = true;
                 twoDTransferFunction(viewMatrix);
                 break;
             case PHONG:
                 toggle();
                 //System.out.println("Cambio a phong o no: " + phongFlag);
-                twoDTransferFunction(viewMatrix);
+                if(tf2dFlag) {
+                    twoDTransferFunction(viewMatrix);
+                }
                 break;
         }
         
